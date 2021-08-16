@@ -60,12 +60,6 @@ func Decrypt(paylod *Payload, key []byte) ([]byte, error) {
 	}
 
 	data = aesDecrypt(data, key, iv)
-	for i := len(data) - 1; i >= 0; i-- { // remove padding
-		if data[i] == '}' {
-			data = data[:i+1]
-			break
-		}
-	}
 	return data, nil
 }
 
@@ -73,15 +67,18 @@ func aesEncrypt(data, key, iv []byte) []byte {
 	blk, _ := aes.NewCipher(key)
 	mode := cipher.NewCBCEncrypter(blk, iv)
 	size := blk.BlockSize()
-	if n := len(data) % size; n != 0 { // pkcs7
+	n := len(data) % size // pkcs7
+	if n == 0 {
+		n = size
+	} else {
 		n = size - n
-		d := make([]byte, len(data)+n)
-		copy(d, data)
-		for i := 0; i < n; i++ {
-			d[len(data)+i] = byte(n)
-		}
-		data = d
 	}
+	d := make([]byte, len(data)+n)
+	copy(d, data)
+	for i := 0; i < n; i++ {
+		d[len(data)+i] = byte(n)
+	}
+	data = d
 	dst := make([]byte, len(data))
 	mode.CryptBlocks(dst, data)
 	return dst
@@ -92,5 +89,6 @@ func aesDecrypt(data, key, iv []byte) []byte {
 	mode := cipher.NewCBCDecrypter(blk, iv)
 	dst := make([]byte, len(data))
 	mode.CryptBlocks(dst, data)
-	return dst
+	n := dst[len(dst)-1]
+	return dst[:len(dst)-int(n)]
 }

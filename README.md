@@ -1,6 +1,7 @@
 # CSC-Staking
 
-A staking tool for [Coinex Smart Chain](https://www.coinex.org/), used to staking CET to validators.
+A staking tool for [Coinex Smart Chain](https://www.coinex.org/), used to staking CET to validators. 
+It uses `Wallet Connect` protocol to connect to your wallet without providing secret key.
 
 ### Build
 
@@ -8,6 +9,8 @@ A staking tool for [Coinex Smart Chain](https://www.coinex.org/), used to stakin
 - Run `go build` to build the repo.
 
 ### Usage
+
+Keep your phone and computer connected to a same LAN.
 
 ```
 Usage of ./csc:

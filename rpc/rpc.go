@@ -1,20 +1,16 @@
 package rpc
 
 import (
-	"csc/jsonrpc"
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
 	"strconv"
 	"time"
 )
 
-type RPCClient struct {
-	jsonrpc.Client
-}
-
 func NewRPCClient(url string) RPCClient {
-	return RPCClient{jsonrpc.Client{URL: url}}
+	return RPCClient{URL: url, Client: http.DefaultClient}
 }
 
 func (c RPCClient) NextNonce(address string) (uint64, error) {

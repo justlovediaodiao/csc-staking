@@ -1,16 +1,17 @@
-package jsonrpc
+package rpc
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
-
-	"csc/requests"
 )
 
 type request struct {
 	JSONRPC string        `json:"jsonrpc"`
-	METHOD  string        `json:"method"`
+	Method  string        `json:"method"`
 	Params  []interface{} `json:"params"`
 	ID      int64         `json:"id"`
 }
@@ -36,13 +37,13 @@ func (e Error) Error() string {
 
 // Response is jsonrpc response.
 type Response struct {
-	requests.Response
+	data []byte
 }
 
 // Result get response result. v must be pointer or nil.
 func (r *Response) Result(v interface{}) error {
-	res := &response{Result: v}
-	err := r.JSON(res)
+	res := response{Result: v}
+	err := json.Unmarshal(r.data, &res)
 	if err != nil {
 		return err
 	}
@@ -53,26 +54,35 @@ func (r *Response) Result(v interface{}) error {
 }
 
 // Client is jsonrpc client with same timeout as requests.DefaultClient.
-type Client struct {
-	URL     string
-	Headers http.Header
+type RPCClient struct {
+	URL    string
+	Client *http.Client
 }
 
 // Do do jsonrpc request.
-func (c Client) Do(method string, args ...interface{}) (*Response, error) {
-	body := &request{
+func (c RPCClient) Do(method string, args ...interface{}) (*Response, error) {
+	req := &request{
 		JSONRPC: "2.0",
-		METHOD:  method,
+		Method:  method,
 		Params:  args,
 		ID:      time.Now().Unix(),
 	}
-	req := requests.Post(c.URL)
-	if c.Headers != nil {
-		req.Headers = c.Headers
-	}
-	res, err := req.JSON(body).Result()
+	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
-	return &Response{*res}, nil
+	res, err := c.Client.Post(c.URL, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("http status code: %d", res.StatusCode)
+	}
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	return &Response{data}, nil
 }
